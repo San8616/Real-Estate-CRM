@@ -127,7 +127,16 @@ router.post('/', authenticateToken, async (req, res) => {
       if (foundAgent) agentId = foundAgent.id;
     }
 
-    const leadCode = `LD-${Math.floor(100 + Math.random() * 900)}`;
+    // Ensure unique lead code
+    let leadCode = req.body.leadCode || req.body.id;
+    if (!leadCode || (await prisma.lead.findUnique({ where: { leadCode } }))) {
+      let isUnique = false;
+      while (!isUnique) {
+        leadCode = `LD-${Math.floor(100 + Math.random() * 900)}`;
+        const existing = await prisma.lead.findUnique({ where: { leadCode } });
+        if (!existing) isUnique = true;
+      }
+    }
 
     const created = await prisma.lead.create({
       data: {

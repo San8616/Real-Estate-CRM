@@ -58,10 +58,18 @@ app.use((err, req, res, _next) => {
   });
 });
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`🚀 EstateFlow CRM API Server running on port ${PORT}`);
   console.log(`   Health: http://localhost:${PORT}/api/health`);
   console.log(`   API v1: http://localhost:${PORT}/api/v1`);
+});
+
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.log(`ℹ️ Port ${PORT} is already in use; assuming API server is already active.`);
+  } else {
+    console.error('Server listen error:', err);
+  }
 });
 
 export default app;
