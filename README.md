@@ -568,17 +568,15 @@ real-estate-crm/
 
 ## Deployment
 
-The application is architected to be deployed either as a unified full-stack application or as separate frontend and backend services:
+The application is deployed with separate frontend and backend cloud services:
 
-- **Frontend**: Can be deployed to static hosting platforms such as Vercel, Netlify, or Cloudflare Pages using `npm run build`.
-- **Backend API**: Can be deployed to container or Node.js hosting environments such as Render, Railway, Fly.io, or AWS ECS.
-- **Database**: SQLite can be run directly with a persistent volume, or replaced with PostgreSQL/MySQL by updating the datasource provider in `schema.prisma`.
+- **Frontend**: Deployed on **Vercel** as a high-performance single-page React application.
+- **Backend API**: Deployed on **Render** running the Express.js REST API server.
+- **Database**: Cloud-hosted **Prisma PostgreSQL** database.
 
 ### Deployment URLs
 - **Frontend URL**: [To be added]
-- **Backend API URL**: [To be added]
-
-*(These placeholders will be updated upon production deployment).*
+- **Backend API URL**: https://real-estate-crm-emn2.onrender.com
 
 ---
 
