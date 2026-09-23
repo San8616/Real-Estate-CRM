@@ -1,0 +1,121 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id               String    @id @default(uuid())
+  email            String    @unique
+  passwordHash     String
+  name             String
+  role             String    // 'Admin' | 'Sales Employee'
+  title            String?
+  avatar           String?
+  avatarBg         String?
+  phone            String?
+  isActive         Boolean   @default(true)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  assignedLeads    Lead[]
+  assignedBookings Booking[]
+  assignedUnits    Unit[]
+}
+
+model Project {
+  id          String     @id @default(uuid())
+  name        String
+  code        String     @unique
+  projectType String     // 'Residential' | 'Commercial' | 'Mixed-Use' | 'Land Development'
+  location    String
+  city        String
+  state       String
+  description String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  buildings   Building[]
+  units       Unit[]
+}
+
+model Building {
+  id          String   @id @default(uuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name        String
+  totalFloors Int      @default(1)
+  totalUnits  Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  units       Unit[]
+}
+
+model Unit {
+  id              String    @id @default(uuid())
+  projectId       String?
+  project         Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  buildingId      String?
+  building        Building? @relation(fields: [buildingId], references: [id], onDelete: SetNull)
+  unitCode        String    @unique
+  name            String
+  unitType        String    // 'Penthouse' | 'Villa' | 'Apartment' | 'Townhouse' | 'Commercial' | 'Plot / Land'
+  location        String
+  price           Float
+  bedrooms        Int       @default(0)
+  bathrooms       Int       @default(0)
+  areaSqFt        Int       @default(0)
+  status          String    @default("Active") // 'Active' | 'Pending' | 'Sold' | 'Off Market'
+  assignedAgentId String?
+  assignedAgent   User?     @relation(fields: [assignedAgentId], references: [id], onDelete: SetNull)
+  listedDate      String
+  description     String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  bookings        Booking[]
+}
+
+model Lead {
+  id               String    @id @default(uuid())
+  leadCode         String    @unique
+  name             String
+  email            String?
+  phone            String
+  stage            String    @default("New") // 'New' | 'Contacted' | 'Site Visit' | 'Interested' | 'Negotiation' | 'Booked' | 'Lost'
+  status           String    @default("Active") // 'Hot Lead' | 'Active' | 'Follow-up Needed' | 'Cold'
+  propertyInterest String?
+  budget           String?
+  source           String?
+  assignedAgentId  String?
+  assignedAgent    User?     @relation(fields: [assignedAgentId], references: [id], onDelete: SetNull)
+  followUpDate     String?
+  notes            String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  bookings         Booking[]
+}
+
+model Booking {
+  id              String   @id @default(uuid())
+  bookingCode     String   @unique
+  leadId          String
+  lead            Lead     @relation(fields: [leadId], references: [id], onDelete: Restrict)
+  unitId          String
+  unit            Unit     @relation(fields: [unitId], references: [id], onDelete: Restrict)
+  bookingType     String   // 'Site Visit' | 'Unit Reservation' | 'Contract Signing' | 'Virtual Walkthrough'
+  bookingDate     String
+  bookingTime     String
+  status          String   @default("Confirmed") // 'Confirmed' | 'Pending' | 'Completed' | 'Cancelled'
+  tokenAmount     String   @default("—")
+  assignedAgentId String
+  assignedAgent   User     @relation(fields: [assignedAgentId], references: [id], onDelete: Restrict)
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
