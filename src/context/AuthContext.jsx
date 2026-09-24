@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ROLES, MOCK_USERS, authenticateUser, hasPermission } from '../data/mockAuth';
+import { ROLES, hasPermission } from '../data/mockAuth';
 import { authService } from '../services/authService';
 import { AuthContext } from './useAuth';
 
@@ -7,8 +7,9 @@ const STORAGE_KEY = 'estateflow_crm_user';
 
 function getInitialUser() {
   try {
+    const token = localStorage.getItem('estateflow_crm_token');
     const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
+    if (token && saved) {
       return JSON.parse(saved);
     }
   } catch {
@@ -21,22 +22,10 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(getInitialUser);
 
   const login = async (email, password) => {
-    try {
-      // 1. Try real API first
-      const data = await authService.login(email, password);
-      setUser(data.user);
-      return data.user;
-    } catch {
-      // 2. Fallback to mockAuth
-      const authenticatedUser = await authenticateUser(email, password);
-      setUser(authenticatedUser);
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(authenticatedUser));
-      } catch {
-        // ignore
-      }
-      return authenticatedUser;
-    }
+    // Use real API login and preserve JWT token
+    const data = await authService.login(email, password);
+    setUser(data.user);
+    return data.user;
   };
 
   const logout = async () => {
@@ -55,16 +44,7 @@ export function AuthProvider({ children }) {
     const targetEmail = targetRole === ROLES.ADMIN ? 'admin@estatecrm.com' : 'agent@estatecrm.com';
     const targetPassword = targetRole === ROLES.ADMIN ? 'admin123' : 'agent123';
 
-    try {
-      await login(targetEmail, targetPassword);
-    } catch {
-      const targetUser = MOCK_USERS.find((u) => u.role === targetRole);
-      if (targetUser) {
-        const { password: _p, ...safeUser } = targetUser;
-        setUser(safeUser);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(safeUser));
-      }
-    }
+    await login(targetEmail, targetPassword);
   };
 
   const can = (permission) => hasPermission(user, permission);

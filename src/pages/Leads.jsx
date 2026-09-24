@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   Trash2,
   RotateCw,
+  AlertCircle,
 } from 'lucide-react';
 import { LEAD_STAGES, MOCK_LEADS } from '../data/mockLeads';
 import { leadsService } from '../services/leadsService';
@@ -42,6 +43,7 @@ export default function Leads() {
 
   // UI state simulation ('normal', 'loading', 'error', 'empty')
   const [viewState, setViewState] = useState('normal');
+  const [errorMessage, setErrorMessage] = useState('');
 
   // Quick stats derived from in-memory leads
   const stats = useMemo(() => {
@@ -122,7 +124,11 @@ export default function Leads() {
           setLeads(data);
         }
       })
-      .catch(() => {});
+      .catch((err) => {
+        if (!ignore) {
+          setErrorMessage(err.message || 'Failed to load leads from server.');
+        }
+      });
     return () => {
       ignore = true;
     };
@@ -130,26 +136,30 @@ export default function Leads() {
 
   // Create lead handler
   const handleCreateLead = async (newLead) => {
+    setErrorMessage('');
     try {
       const created = await leadsService.createLead(newLead);
-      setLeads((prev) => [created, ...prev]);
-    } catch {
-      setLeads((prev) => [newLead, ...prev]);
+      if (created) {
+        setLeads((prev) => [created, ...prev]);
+        setCurrentPage(1);
+      }
+    } catch (err) {
+      setErrorMessage(err.message || 'Failed to create lead. Please verify server connection and try again.');
     }
-    setCurrentPage(1);
   };
 
   // Edit/update lead handler
   const handleUpdateLead = async (updatedLead) => {
+    setErrorMessage('');
     try {
       const saved = await leadsService.updateLead(updatedLead.id, updatedLead);
-      setLeads((prev) =>
-        prev.map((lead) => (lead.id === saved.id ? saved : lead))
-      );
-    } catch {
-      setLeads((prev) =>
-        prev.map((lead) => (lead.id === updatedLead.id ? updatedLead : lead))
-      );
+      if (saved) {
+        setLeads((prev) =>
+          prev.map((lead) => (lead.id === saved.id ? saved : lead))
+        );
+      }
+    } catch (err) {
+      setErrorMessage(err.message || 'Failed to update lead. Please try again.');
     }
     if (viewingLead && viewingLead.id === updatedLead.id) {
       setViewingLead(updatedLead);
@@ -159,28 +169,30 @@ export default function Leads() {
   // Delete lead handler (Admin only)
   const handleDeleteLead = async (id) => {
     if (!isAdmin) return;
+    setErrorMessage('');
     try {
       await leadsService.deleteLead(id);
-    } catch {
-      // ignore
-    }
-    setLeads((prev) => prev.filter((l) => l.id !== id));
-    setSelectedLeadIds((prev) => prev.filter((i) => i !== id));
-    if (viewingLead && viewingLead.id === id) {
-      setViewingLead(null);
+      setLeads((prev) => prev.filter((l) => l.id !== id));
+      setSelectedLeadIds((prev) => prev.filter((i) => i !== id));
+      if (viewingLead && viewingLead.id === id) {
+        setViewingLead(null);
+      }
+    } catch (err) {
+      setErrorMessage(err.message || 'Failed to delete lead. Please try again.');
     }
   };
 
   // Bulk delete selected (Admin only)
   const handleBulkDelete = async () => {
     if (!isAdmin) return;
+    setErrorMessage('');
     try {
       await leadsService.bulkDeleteLeads(selectedLeadIds);
-    } catch {
-      // ignore
+      setLeads((prev) => prev.filter((l) => !selectedLeadIds.includes(l.id)));
+      setSelectedLeadIds([]);
+    } catch (err) {
+      setErrorMessage(err.message || 'Failed to delete selected leads.');
     }
-    setLeads((prev) => prev.filter((l) => !selectedLeadIds.includes(l.id)));
-    setSelectedLeadIds([]);
   };
 
   // Selection toggle handlers
@@ -244,6 +256,23 @@ export default function Leads() {
           </button>
         </div>
       </div>
+
+      {/* Error Alert Banner */}
+      {errorMessage && (
+        <div className="flex items-center justify-between rounded-xl border border-rose-200 bg-rose-50 p-3.5 text-xs text-rose-800 animate-fadeIn">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="h-4 w-4 text-rose-600 shrink-0" />
+            <span className="font-medium">{errorMessage}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setErrorMessage('')}
+            className="font-semibold text-rose-600 hover:text-rose-800 cursor-pointer ml-3 shrink-0"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
 
       {/* Quick Metrics Bar */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
